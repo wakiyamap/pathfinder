@@ -136,4 +136,9 @@ if __name__ == "__main__":
 
     for k, v in nodes.items():
         [prefix, suffix] = k.split(b":", maxsplit=1)
+
+        if prefix != b"patricia_node":
+            # filter others for now
+            continue
+
         print(f"{str(prefix, 'utf-8')}:{suffix.hex()} => {v.hex()}", file=sys.stderr)
