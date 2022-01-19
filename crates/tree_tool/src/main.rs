@@ -56,8 +56,13 @@ fn generate_doc<R: Rng>(kind: DocumentKind, mut rng: R, seed: &[u8]) {
     println!("# count: {}", count);
 
     // this is the field modulus
-    let modulus = num_bigint::BigUint::from_str(
+    let _modulus = num_bigint::BigUint::from_str(
         "3618502788666131213697322783095070105623107215331596699973092056135872020481",
+    )
+    .unwrap();
+
+    let _high_251 = num_bigint::BigUint::from_str(
+        "3618502788666131106986593281521497120414687020801267626233049500247285301247",
     )
     .unwrap();
 
@@ -74,7 +79,7 @@ fn generate_doc<R: Rng>(kind: DocumentKind, mut rng: R, seed: &[u8]) {
                 print!(" ");
             }
 
-            let num = rng.gen_biguint_below(&modulus);
+            let num = rng.gen_biguint_below(&_high_251);
             let num = num.to_bytes_be();
             print!("0x{:?}", Hex(&num));
         }
