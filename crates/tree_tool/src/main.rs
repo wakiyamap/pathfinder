@@ -18,7 +18,7 @@ struct Options {
     #[structopt(long = "seed", parse(try_from_str = parse_seed))]
     seed: Option<[u8; 32]>,
 
-    /// The kind of the document generated; "contract" for two columns, or "global" for three
+    /// The kind of the document generated; "storage" for two columns, or "global" for three
     /// columns.
     kind: DocumentKind,
 }
@@ -85,7 +85,7 @@ fn generate_doc<R: Rng>(kind: DocumentKind, mut rng: R, seed: &[u8]) {
 
 #[derive(StructOpt)]
 enum DocumentKind {
-    ContractStorage,
+    StorageTree,
     GlobalTree,
 }
 
@@ -93,7 +93,7 @@ impl From<DocumentKind> for usize {
     fn from(d: DocumentKind) -> usize {
         use DocumentKind::*;
         match d {
-            ContractStorage => 2,
+            StorageTree => 2,
             GlobalTree => 3,
         }
     }
@@ -103,9 +103,10 @@ impl std::str::FromStr for DocumentKind {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use DocumentKind::*;
         Ok(match s {
-            "contract" => DocumentKind::ContractStorage,
-            "global" => DocumentKind::GlobalTree,
+            "storage" => StorageTree,
+            "global" => GlobalTree,
             _ => return Err("invalid document kind, either 'contract' or 'global'"),
         })
     }
