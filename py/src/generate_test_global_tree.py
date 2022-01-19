@@ -1,4 +1,4 @@
-# # generate_global_tree.py
+# # generate_test_global_tree.py
 #
 # usage example (sending nodes in stderr to /dev/null):
 #

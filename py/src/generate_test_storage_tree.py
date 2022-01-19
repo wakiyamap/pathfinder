@@ -1,4 +1,4 @@
-# # generate_test_tree.py
+# # generate_test_storage_tree.py
 #
 # usage: echo "1 2" | python src/generate_test_storage_tree.py
 #
