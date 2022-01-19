@@ -1,7 +1,7 @@
 use pathfinder_lib::state::merkle_tree::MerkleTree;
 use rusqlite::Connection;
 use stark_hash::StarkHash;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use web3::types::U256;
 
 fn main() {
@@ -18,6 +18,9 @@ fn main() {
 
     let mut conn = Connection::open_in_memory().unwrap();
 
+    // quick hack to see if committing every row works
+    let commit_every = false;
+
     let root = {
         let transaction = conn.transaction().unwrap();
 
@@ -26,6 +29,9 @@ fn main() {
         let mut buffer = String::new();
         let stdin = std::io::stdin();
         let mut stdin = stdin.lock();
+
+        let mut first = false;
+        let mut stdout = std::io::stdout();
 
         loop {
             buffer.clear();
@@ -40,6 +46,17 @@ fn main() {
                 // TODO: impl this to python side
                 // allow comments and empty lines for clearer examples
                 continue;
+            }
+
+            if commit_every && !first {
+                let root = uut.commit().unwrap();
+                uut = MerkleTree::load("test".to_string(), &transaction, root).unwrap();
+                print!(".");
+                stdout.flush().unwrap();
+            }
+
+            if first {
+                first = false;
             }
 
             // here we read just address = value
@@ -58,6 +75,10 @@ fn main() {
         }
 
         let root = uut.commit().unwrap();
+
+        if commit_every {
+            println!(".");
+        }
 
         transaction.commit().unwrap();
         root
