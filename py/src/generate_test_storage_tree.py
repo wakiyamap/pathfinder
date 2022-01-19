@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     assert len(sys.argv) <= 1, f"unsupported args; use stdin: {sys.argv}"
 
-    gen = (parse_line(line) for line in sys.stdin)
+    gen = (parse_line(line) for line in sys.stdin if len(line.strip()) > 0 and not line.startswith('#'))
     (root, nodes) = asyncio.run(generate_root_and_nodes(gen))
     print(root.hex())
 
