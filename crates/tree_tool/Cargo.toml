@@ -1,0 +1,13 @@
+[package]
+name = "tree_tool"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8"
+stark_hash = { path = "../stark_hash" }
+# pathfinder = { path = "../pathfinder" }
+num-bigint = { version = "0.4", features = ["rand"] }
+rand_chacha = "0.3"

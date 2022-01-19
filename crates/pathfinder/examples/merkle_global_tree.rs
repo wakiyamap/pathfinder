@@ -1,6 +1,6 @@
-use pathfinder_lib::merkle_tree::MerkleTree;
-use pedersen::{pedersen_hash, StarkHash};
+use pathfinder_lib::state::merkle_tree::MerkleTree;
 use rusqlite::Connection;
+use stark_hash::{stark_hash, StarkHash};
 use std::io::BufRead;
 use web3::types::U256;
 
@@ -14,7 +14,7 @@ fn main() {
         return;
     }
 
-    const ZERO_HASH: StarkHash = StarkHash::zero();
+    const ZERO_HASH: StarkHash = StarkHash::ZERO;
 
     let mut conn = Connection::open_in_memory().unwrap();
 
@@ -65,9 +65,9 @@ fn main() {
             let contract_commitment_root = parse(contract_commitment_root)
                 .unwrap_or_else(|| panic!("invalid value: {:?}", buffer));
 
-            let value = pedersen_hash(contract_hash, contract_commitment_root);
-            let value = pedersen_hash(value, ZERO_HASH);
-            let value = pedersen_hash(value, ZERO_HASH);
+            let value = stark_hash(contract_hash, contract_commitment_root);
+            let value = stark_hash(value, ZERO_HASH);
+            let value = stark_hash(value, ZERO_HASH);
 
             // python side does make sure every key is unique before asking the tree code to
             // process it

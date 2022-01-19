@@ -1,6 +1,6 @@
-use pathfinder_lib::merkle_tree::MerkleTree;
-use pedersen::StarkHash;
+use pathfinder_lib::state::merkle_tree::MerkleTree;
 use rusqlite::Connection;
+use stark_hash::StarkHash;
 use std::io::BufRead;
 use web3::types::U256;
 
@@ -14,7 +14,7 @@ fn main() {
         return;
     }
 
-    const ZERO_HASH: StarkHash = StarkHash::zero();
+    const ZERO_HASH: StarkHash = StarkHash::ZERO;
 
     let mut conn = Connection::open_in_memory().unwrap();
 

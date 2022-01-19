@@ -4,5 +4,6 @@ members = [
     "crates/pathfinder",
     "crates/stark_curve",
     "crates/stark_hash",
+    "crates/tree_tool",
 ]
 resolver = "2"

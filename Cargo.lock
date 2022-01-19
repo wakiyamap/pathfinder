@@ -1888,6 +1888,7 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
+ "rand",
  "serde",
 ]
 
@@ -3562,6 +3563,16 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "tree_tool"
+version = "0.1.0"
+dependencies = [
+ "num-bigint 0.4.3",
+ "rand",
+ "rand_chacha",
+ "stark_hash",
 ]
 
 [[package]]
