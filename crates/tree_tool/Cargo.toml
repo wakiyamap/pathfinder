@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 rand = "0.8"
 stark_hash = { path = "../stark_hash" }
-# pathfinder = { path = "../pathfinder" }
+pathfinder = { path = "../pathfinder" }
+rusqlite = { version = "*", features = ["bundled"] }
 num-bigint = { version = "0.4", features = ["rand"] }
 rand_chacha = "0.3"
 structopt = "0.3"
 hex = "0.4.3"
+web3 = "0.17.0"

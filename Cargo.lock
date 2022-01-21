@@ -3605,10 +3605,13 @@ version = "0.1.0"
 dependencies = [
  "hex",
  "num-bigint 0.4.3",
+ "pathfinder",
  "rand",
  "rand_chacha",
+ "rusqlite",
  "stark_hash",
  "structopt",
+ "web3",
 ]
 
 [[package]]
