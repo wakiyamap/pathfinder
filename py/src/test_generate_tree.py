@@ -1,4 +1,4 @@
-from generate_test_global_tree import generate_root_and_nodes, parse_value, parse_bytes
+from generate_tree import GlobalTreeBuilder, StorageTreeBuilder, parse_value, parse_bytes, generate_root_and_nodes
 import asyncio
 
 
@@ -15,7 +15,8 @@ def test_existing_example():
 
     (root, nodes) = asyncio.run(
         generate_root_and_nodes(
-            [(contract_address, contract_hash, contract_commitment_tree_root)]
+            [(contract_address, contract_hash, contract_commitment_tree_root)],
+            GlobalTreeBuilder(),
         )
     )
 
@@ -64,7 +65,7 @@ def test_existing_example_of_two():
         ),
     ]
 
-    (root, nodes) = asyncio.run(generate_root_and_nodes(input))
+    (root, nodes) = asyncio.run(generate_root_and_nodes(input, GlobalTreeBuilder()))
 
     assert root == bytes.fromhex(
         "05b4ca9e1caff46ebf6416f6d7192a9e562a6cf193b4fe73c30bf7d8062f0e13"
@@ -102,3 +103,34 @@ def test_existing_example_of_two():
         v = bytes.fromhex(v)
 
         assert nodes[k] == v
+
+
+def test_default_1_2():
+    # couldn't get the pytest-asyncio working straight away
+    # note: cairo-lang generates lot of warnings, which are hidden
+    (root, nodes) = asyncio.run(generate_root_and_nodes([(1, 2)], StorageTreeBuilder()))
+
+    assert root == bytes.fromhex(
+        "02ab889bd35e684623df9b4ea4a4a1f6d9e0ef39b67c1293b8a89dd17e351330"
+    )
+    assert len(nodes) == 2
+    assert nodes[
+        b"starknet_storage_leaf:"
+        + bytes.fromhex(
+            "0000000000000000000000000000000000000000000000000000000000000002"
+        )
+    ] == bytes.fromhex(
+        "0000000000000000000000000000000000000000000000000000000000000002"
+    )
+    assert nodes[
+        b"patricia_node:"
+        + bytes.fromhex(
+            "02ab889bd35e684623df9b4ea4a4a1f6d9e0ef39b67c1293b8a89dd17e351330"
+        )
+    ] == bytes.fromhex(
+        "00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001fb"
+    )
+
+
+def test_parse_value_hex():
+    assert parse_value("0x01") == 1

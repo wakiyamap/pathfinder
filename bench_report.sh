@@ -20,7 +20,7 @@ echo "contract commitment root"
 head -2 output.bench.storage
 a=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.pathfinder.storage.old target/release/examples/merkle_storage_tree.old < output.bench.storage 2>/dev/null)
 b=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.pathfinder.storage target/release/examples/merkle_storage_tree < output.bench.storage 2>/dev/null)
-c=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.cairolang.storage py/.venv/bin/python py/src/generate_test_storage_tree.py < output.bench.storage 2>/dev/null)
+c=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.cairolang.storage py/.venv/bin/python py/src/generate_tree.py storage < output.bench.storage 2>/dev/null)
 
 if [[ "$a" == "$b" ]] && [[ "$b" == "$c" ]]; then
 	echo "roots match: $a"
@@ -44,7 +44,7 @@ echo "global commitment root"
 head -2 output.bench.global
 a=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.pathfinder.global.old target/release/examples/merkle_global_tree.old < output.bench.global 2>/dev/null)
 b=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.pathfinder.global target/release/examples/merkle_global_tree < output.bench.global 2>/dev/null)
-c=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.cairolang.global py/.venv/bin/python py/src/generate_test_global_tree.py < output.bench.global 2>/dev/null)
+c=$(/usr/bin/time -f '%E wall, %S kernel, %U user' -o time.cairolang.global py/.venv/bin/python py/src/generate_tree.py global < output.bench.global 2>/dev/null)
 
 if [[ "$a" == "$b" ]] && [[ "$b" == "$c" ]]; then
 	echo "roots match: $a"
