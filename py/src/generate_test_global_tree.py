@@ -21,6 +21,9 @@
 #
 # does not accept any arguments.
 
+import os
+
+INCLUDE_NODES = os.environ.get("TREE_TOOL_SUPPRESS_NODES") != None
 
 async def generate_root_and_nodes(input):
     """
@@ -84,12 +87,14 @@ async def generate_root_and_nodes(input):
     new_root = (await root.update(ffc, updates.items())).root
 
     nodes = {}
-    for k, v in state.state.ffc.storage.db.items():
-        if k in initial_ignorable_state and initial_ignorable_state[k] == v:
-            # just filter the initial zeros and related json
-            continue
 
-        nodes[k] = v
+    if INCLUDE_NODES:
+        for k, v in state.state.ffc.storage.db.items():
+            if k in initial_ignorable_state and initial_ignorable_state[k] == v:
+                # just filter the initial zeros and related json
+                continue
+
+            nodes[k] = v
 
     return (new_root, nodes)
 
