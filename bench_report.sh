@@ -22,6 +22,9 @@ cargo build --release -p tree_tool --bin generate_tree
 # 3. renaming it
 # 4. rebase this to the d2091002621b408cf2d16be95b56458cb7a649ea
 # 5. run the script
+# already found around 800 node examples
+cargo run --quiet -p tree_tool -- storage --seed 24a7b496d94d7f05a8ca503d10d223318ad42082c6d369ae3346ac44fee4893b >| output.bench.storage
+cargo run --quiet -p tree_tool -- global --seed c4559117fd46873b11a54458093d5a7924873c84e458a28e1b3ed9e1623a24de >| output.bench.global
 
 echo "contract commitment root"
 head -2 output.bench.storage
