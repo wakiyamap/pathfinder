@@ -144,7 +144,10 @@ fn main() {
     };
 
     println!("{:?}", root);
-    dump(&mut conn, "test");
+
+    if std::env::var_os("TREE_TOOL_SUPPRESS_NODES").is_none() {
+        dump(&mut conn, "test");
+    }
 }
 
 fn dump(conn: &mut Connection, name: &str) {
