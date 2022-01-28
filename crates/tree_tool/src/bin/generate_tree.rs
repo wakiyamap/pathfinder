@@ -2,6 +2,7 @@ use pathfinder_lib::state::merkle_tree::MerkleTree;
 use rusqlite::Connection;
 use stark_hash::{stark_hash, StarkHash};
 use std::io::BufRead;
+use std::sync::Arc;
 use web3::types::U256;
 
 const ZERO_HASH: StarkHash = StarkHash::ZERO;
@@ -41,6 +42,53 @@ fn main() {
         std::process::exit(1);
     };
 
+    #[derive(Clone)]
+    enum Message {
+        Insert(Arc<(StarkHash, StarkHash)>),
+        Fin(Arc<StarkHash>),
+    }
+
+    use Message::*;
+
+    let txs = (1..10)
+        .map(|every| {
+            let (tx, rx) = std::sync::mpsc::channel();
+            let jh = std::thread::spawn(move || {
+                let name = format!("every_{}", every);
+                let mut conn = Connection::open_in_memory().unwrap();
+                let transaction = conn.transaction().unwrap();
+                let mut root = ZERO_HASH;
+                let mut uut = MerkleTree::load(name.clone(), &transaction, root).unwrap();
+
+                let mut batch = 0;
+                let mut total_commits = 0;
+
+                for msg in rx {
+                    match msg {
+                        Insert(tuple) => {
+                            uut.set(tuple.0, tuple.1).unwrap();
+                            batch += 1;
+                            if batch == every {
+                                root = uut.commit().unwrap();
+                                uut = MerkleTree::load(name.clone(), &transaction, root).unwrap();
+                                batch = 0;
+                                total_commits += 1;
+                            }
+                        }
+                        Fin(root_hash) => {
+                            root = uut.commit().unwrap();
+                            if root != *root_hash {
+                                panic!("Committing every {} produced a different hash (total commits: {})\nExpected: {:?}, Got: {:?}", every, total_commits, root_hash, root);
+                            }
+                            break;
+                        }
+                    }
+                }
+            });
+            (tx, jh)
+        })
+        .collect::<Vec<_>>();
+
     let mut conn = Connection::open_in_memory().unwrap();
 
     let root = {
@@ -69,18 +117,40 @@ fn main() {
             let (key, value) = parse(buffer);
 
             uut.set(key, value).expect("how could this fail");
+
+            let msg = Insert(Arc::new((key, value)));
+
+            txs.iter().for_each(|(tx, _)| {
+                let _ = tx.send(msg.clone());
+            });
         }
 
         let root = uut.commit().unwrap();
-
         transaction.commit().unwrap();
+
+        let msg = Fin(Arc::new(root));
+
+        txs.iter().for_each(|(tx, _)| {
+            let _ = tx.send(msg.clone());
+        });
+
+        if !txs.into_iter().map(|(_, jh)| jh.join().is_ok()).all(|x| x) {
+            eprintln!("some threads failed, we got: {:?}", root);
+            std::process::exit(1);
+        }
+
         root
     };
 
     println!("{:?}", root);
+    dump(&mut conn, "test");
+}
 
+fn dump(conn: &mut Connection, name: &str) {
     let tx = conn.transaction().unwrap();
-    let mut stmt = tx.prepare("select hash, data from test").unwrap();
+    let mut stmt = tx
+        .prepare(format!("select hash, data from {}", name).as_str())
+        .unwrap();
     let mut res = stmt.query([]).unwrap();
 
     while let Some(row) = res.next().unwrap() {
