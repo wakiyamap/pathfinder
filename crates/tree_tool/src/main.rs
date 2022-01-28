@@ -3,6 +3,7 @@
 
 use num_bigint::RandBigInt;
 use rand::{Rng, SeedableRng};
+use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 use structopt::StructOpt;
@@ -21,6 +22,10 @@ struct Options {
     /// The kind of the document generated; "storage" for two columns, or "global" for three
     /// columns.
     kind: DocumentKind,
+
+    /// Applies for "storage"; the probability of deletion of previously set values. 0 is default.
+    #[structopt(long = "deletion-probability")]
+    deletion_probability: Option<u8>,
 }
 
 fn parse_seed(s: &str) -> Result<[u8; 32], hex::FromHexError> {
@@ -31,6 +36,18 @@ fn parse_seed(s: &str) -> Result<[u8; 32], hex::FromHexError> {
 
 fn main() {
     let opts = Options::from_args();
+
+    if opts.kind == DocumentKind::GlobalTree {
+        assert_eq!(
+            opts.deletion_probability, None,
+            "deletion_probability doesn't apply to global trees"
+        );
+    } else if let Some(deletion_probability) = opts.deletion_probability {
+        assert!(
+            deletion_probability < 100,
+            "deletion_probability needs to be under 100"
+        );
+    }
 
     let seed = opts.seed.unwrap_or_else(|| {
         // thread_rng algorithm isn't documented, so it cannot be trusted to stable seedable outputs
@@ -44,10 +61,20 @@ fn main() {
 
     let rng = rand_chacha::ChaCha8Rng::from_seed(seed);
 
-    generate_doc(opts.kind, rng, &seed);
+    generate_doc(
+        opts.kind,
+        rng,
+        &seed,
+        opts.deletion_probability.map(|x| x as f64 / 100.0),
+    );
 }
 
-fn generate_doc<R: Rng>(kind: DocumentKind, mut rng: R, seed: &[u8]) {
+fn generate_doc<R: Rng>(
+    kind: DocumentKind,
+    mut rng: R,
+    seed: &[u8],
+    deletion_probability: Option<f64>,
+) {
     // always include the seed, in case you find a non-working one
     println!("# chacha8 seed: {:?}", Hex(&seed));
 
@@ -66,29 +93,43 @@ fn generate_doc<R: Rng>(kind: DocumentKind, mut rng: R, seed: &[u8]) {
     )
     .unwrap();
 
+    let deletion = deletion_probability.map(|p| rand::distributions::Bernoulli::new(p).unwrap());
+    let mut deletable_keys: HashSet<Vec<u8>> = HashSet::new();
+    let mut tmp_deleted = Vec::new();
+
     let columns = usize::from(kind);
 
     for _ in 0..=count {
-        let mut first = true;
+        if !deletable_keys.is_empty() {
+            if let Some(true) = deletion.map(|b| rng.sample(b)) {
+                let selected = deletable_keys.iter().next().expect("just checked");
+                tmp_deleted.clear();
+                tmp_deleted.extend(selected.iter().copied());
+                assert!(deletable_keys.remove(&tmp_deleted));
+                println!("0x{:?} 0x{:0>64}", Hex(&tmp_deleted), 0);
+            }
+        }
 
         // two for storage trees, three for global trees
-        for _ in 0..columns {
-            if first {
-                first = false;
-            } else {
+        for i in 0..columns {
+            if i > 0 {
                 print!(" ");
             }
 
             let num = rng.gen_biguint_below(&_high_251);
-            let num = num.to_bytes_be();
-            print!("0x{:?}", Hex(&num));
+            let raw = num.to_bytes_be();
+            print!("0x{:?}", Hex(&raw));
+
+            if i == 0 && deletion_probability.is_some() {
+                deletable_keys.insert(raw);
+            }
         }
 
         println!();
     }
 }
 
-#[derive(StructOpt)]
+#[derive(StructOpt, PartialEq)]
 enum DocumentKind {
     StorageTree,
     GlobalTree,
