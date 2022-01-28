@@ -50,7 +50,8 @@ fn main() {
 
     use Message::*;
 
-    let txs = (1..10)
+    let txs = [1, 2, 3, 5, 7, 11]
+        .into_iter()
         .map(|every| {
             let (tx, rx) = std::sync::mpsc::channel();
             let jh = std::thread::spawn(move || {
