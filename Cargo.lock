@@ -3603,6 +3603,7 @@ dependencies = [
 name = "tree_tool"
 version = "0.1.0"
 dependencies = [
+ "fnv",
  "hex",
  "num-bigint 0.4.3",
  "pathfinder",
