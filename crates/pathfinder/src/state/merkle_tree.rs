@@ -557,6 +557,63 @@ impl<T: NodeStorage> MerkleTree<T> {
 
         Ok(())
     }
+
+    /// Recursive depth-first traversal of the keys and values in the tree.
+    pub fn visit_leaves(
+        &self,
+        mut visitor: impl FnMut(&StarkHash, &StarkHash) -> (),
+    ) -> anyhow::Result<()> {
+        use bitvec::prelude::*;
+
+        let root = self.root.borrow().clone();
+
+        fn depth_traversal(
+            tree: &MerkleTree,
+            node: Node,
+            path: BitVec<Msb0, u8>,
+            visitor: &mut impl FnMut(&StarkHash, &StarkHash) -> (),
+            parent_was_edge: bool,
+        ) -> anyhow::Result<()> {
+            use Node::*;
+
+            let node = match node {
+                Unresolved(hash) if hash == StarkHash::ZERO => return Ok(()),
+                Unresolved(hash) => tree.resolve(hash, path.len())?,
+                other => other,
+            };
+
+            match node {
+                Binary(binary) => {
+                    let mut left_path = path.clone();
+                    left_path.push(Direction::Left.into());
+                    let left_child = binary.left.borrow().clone();
+                    depth_traversal(tree, left_child, left_path, visitor, false)?;
+
+                    let mut right_path = path;
+                    right_path.push(Direction::Right.into());
+                    let right_child = binary.right.borrow().clone();
+                    depth_traversal(tree, right_child, right_path, visitor, false)?;
+                }
+                Edge(edge) => {
+                    assert!(!parent_was_edge);
+                    let mut path = path;
+                    path.extend_from_bitslice(&edge.path);
+                    let child = edge.child.borrow().clone();
+
+                    depth_traversal(tree, child, path, visitor, true)?;
+                }
+                Leaf(value) => {
+                    let key = StarkHash::from_bits(&path)?;
+                    visitor(&key, &value);
+                }
+                Unresolved(_) => unreachable!("Node is resolved prior to this"),
+            }
+
+            Ok(())
+        }
+
+        depth_traversal(&self, root, bitvec![Msb0, u8;], &mut visitor, false)
+    }
 }
 
 #[cfg(any(test, fuzzing))]
