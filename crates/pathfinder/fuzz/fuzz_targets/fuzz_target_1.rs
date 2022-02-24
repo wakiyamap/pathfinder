@@ -59,6 +59,7 @@ fuzz_target!(|cmds: Vec<Command>| {
     const ZERO_HASH: StarkHash = StarkHash::ZERO;
 
     let mut uut = MerkleTree::<RefCell<HashMap<_, _>>>::default();
+    let mut uut2 = MerkleTree::<()>::default();
 
     let mut h = HashMap::new();
 
@@ -73,12 +74,14 @@ fuzz_target!(|cmds: Vec<Command>| {
                 let value = StarkHash::from(value);
 
                 uut.set(key, value).unwrap();
+                uut2.set(key, value).unwrap();
                 h.insert(key, value);
             }
             Command::RemoveAny => {
                 if let Some(key) = h.keys().next().copied() {
                     h.remove(&key).unwrap();
                     uut.set(key, ZERO_HASH).unwrap();
+                    uut2.set(key, ZERO_HASH).unwrap();
                 }
             }
         }
@@ -91,6 +94,8 @@ fuzz_target!(|cmds: Vec<Command>| {
         let found = h.remove(key);
         assert_eq!(found.as_ref(), Some(value));
         assert_ne!(value, &ZERO_HASH);
+
+        assert_eq!(&uut2.get(*key).unwrap(), value);
     })
     .unwrap();
 
