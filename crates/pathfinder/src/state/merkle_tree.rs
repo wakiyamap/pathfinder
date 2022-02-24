@@ -164,11 +164,8 @@ impl<T: NodeStorage> MerkleTree<T> {
         Ok(tree)
     }
 
-    /// Persists all changes to storage and returns the new root hash.
-    ///
-    /// Note that the root is reference counted in storage. Committing the
-    /// same tree again will therefore increment the count again.
-    pub fn commit(self) -> anyhow::Result<StarkHash> {
+    /// Like [`MerkleTree::commit`] but doesn't consume the value.
+    pub fn commit_mut(&mut self) -> anyhow::Result<StarkHash> {
         // Go through tree, collect dirty nodes, calculate their hashes and
         // persist them. Take care to increment ref counts of child nodes. So in order
         // to do this correctly, will have to start back-to-front.
@@ -180,6 +177,14 @@ impl<T: NodeStorage> MerkleTree<T> {
         // TODO: (debug only) expand tree assert that no edge node has edge node as child
 
         Ok(root)
+    }
+
+    /// Persists all changes to storage and returns the new root hash.
+    ///
+    /// Note that the root is reference counted in storage. Committing the
+    /// same tree again will therefore increment the count again.
+    pub fn commit(mut self) -> anyhow::Result<StarkHash> {
+        self.commit_mut()
     }
 
     /// Persists any changes in this subtree to storage.
