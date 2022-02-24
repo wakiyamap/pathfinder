@@ -174,7 +174,9 @@ impl<T: NodeStorage> MerkleTree<T> {
         let root = self.root.borrow().hash().unwrap();
         self.storage.increment_ref_count(root)?;
 
-        // TODO: (debug only) expand tree assert that no edge node has edge node as child
+        if false {
+            self.visit_leaves(|_, _| ()).expect("tree check failed");
+        }
 
         Ok(root)
     }
@@ -572,8 +574,8 @@ impl<T: NodeStorage> MerkleTree<T> {
 
         let root = self.root.borrow().clone();
 
-        fn depth_traversal(
-            tree: &MerkleTree,
+        fn depth_traversal<T: NodeStorage>(
+            tree: &MerkleTree<T>,
             node: Node,
             path: BitVec<Msb0, u8>,
             visitor: &mut impl FnMut(&StarkHash, &StarkHash) -> (),
@@ -622,6 +624,33 @@ impl<T: NodeStorage> MerkleTree<T> {
 }
 
 #[cfg(any(test, fuzzing))]
+impl NodeStorage for RefCell<std::collections::HashMap<StarkHash, PersistedNode>> {
+    fn get(&self, key: StarkHash) -> anyhow::Result<Option<PersistedNode>> {
+        Ok(self.borrow().get(&key).cloned())
+    }
+
+    fn upsert(&self, key: StarkHash, node: PersistedNode) -> anyhow::Result<()> {
+        use std::collections::hash_map::Entry::*;
+        match self.borrow_mut().entry(key) {
+            Vacant(ve) => {
+                ve.insert(node);
+            }
+            _ => { /* shouldn't update ref count? */ }
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    fn decrement_ref_count(&self, _key: StarkHash) -> anyhow::Result<()> {
+        Ok(())
+    }
+
+    fn increment_ref_count(&self, _key: StarkHash) -> anyhow::Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(any(test, fuzzing))]
 impl NodeStorage for () {
     fn get(&self, _key: StarkHash) -> anyhow::Result<Option<PersistedNode>> {
         // the rc<refcell> impl will do just fine by without any backing for transaction tree
@@ -635,10 +664,12 @@ impl NodeStorage for () {
 
     #[cfg(test)]
     fn decrement_ref_count(&self, _key: StarkHash) -> anyhow::Result<()> {
+        // we have no storage so we cannot find anything
         Ok(())
     }
 
     fn increment_ref_count(&self, _key: StarkHash) -> anyhow::Result<()> {
+        // we have no storage so we cannot find anything
         Ok(())
     }
 }
