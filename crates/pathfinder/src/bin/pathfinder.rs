@@ -55,17 +55,17 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: the error could be recovered, but currently it's required for startup. There should
     // not be other reason for the start to fail than python script not firing up.
-    let (call_handle, _jh) = cairo::ext_py::start(
-        storage.path().into(),
-        std::num::NonZeroUsize::new(2).unwrap(),
-        futures::future::pending(),
-    )
-    .await
-    .context("Creating python process for call handling. Have you setup and activate the python `VIRTUAL_ENV` in the `py` directory?")?;
-    info!("Python sub-processes started");
+    // let (call_handle, _jh) = cairo::ext_py::start(
+    //     storage.path().into(),
+    //     std::num::NonZeroUsize::new(2).unwrap(),
+    //     futures::future::pending(),
+    // )
+    // .await
+    // .context("Creating python process for call handling. Have you setup and activate the python `VIRTUAL_ENV` in the `py` directory?")?;
+    // info!("Python sub-processes started");
 
-    let api = rpc::api::RpcApi::new(storage, sequencer, network_chain, sync_state)
-        .with_call_handling(call_handle);
+    let api = rpc::api::RpcApi::new(storage, sequencer, network_chain, sync_state);
+        // .with_call_handling(call_handle);
 
     let (_rpc_handle, local_addr) =
         rpc::run_server(config.http_rpc_addr, api).context("Starting the RPC server")?;
