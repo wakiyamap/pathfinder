@@ -20,6 +20,15 @@ pub enum Chain {
     Goerli,
 }
 
+impl std::fmt::Display for Chain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Chain::Mainnet => f.write_str("Mainnet"),
+            Chain::Goerli => f.write_str("Goerli"),
+        }
+    }
+}
+
 /// List of semi-official Ethereum RPC errors taken from [EIP-1474] (which is stagnant).
 ///
 /// The issue of standardizing the Ethereum RPC seems to now be taking

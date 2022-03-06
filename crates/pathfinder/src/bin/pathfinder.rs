@@ -32,12 +32,15 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Determining Ethereum chain")?;
 
+    info!("Identified chain as {}", network_chain);
+
     let database_path = match network_chain {
         ethereum::Chain::Mainnet => "mainnet.sqlite",
         ethereum::Chain::Goerli => "goerli.sqlite",
     };
 
     let storage = Storage::migrate(database_path.into()).unwrap();
+    info!("Database initialized");
     let sequencer = sequencer::Client::new(network_chain).unwrap();
     let sync_state = Arc::new(state::SyncState::default());
 
@@ -48,6 +51,7 @@ async fn main() -> anyhow::Result<()> {
         sequencer.clone(),
         sync_state.clone(),
     ));
+    info!("Sync process started");
 
     // TODO: the error could be recovered, but currently it's required for startup. There should
     // not be other reason for the start to fail than python script not firing up.
@@ -58,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
     )
     .await
     .context("Creating python process for call handling. Have you setup and activate the python `VIRTUAL_ENV` in the `py` directory?")?;
+    info!("Python sub-processes started");
 
     let api = rpc::api::RpcApi::new(storage, sequencer, network_chain, sync_state)
         .with_call_handling(call_handle);
