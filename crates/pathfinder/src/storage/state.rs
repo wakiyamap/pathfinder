@@ -805,7 +805,7 @@ impl StarknetEventsTable {
             }
             (Some(_), Some(_)) => anyhow::bail!("Invalid page size"),
             (None, None) => "",
-            (_, _) => anyhow::bail!("Invalid paging request"),
+            (_, _) => anyhow::bail!("Invalid pagination request"),
         };
 
         let query = if where_statement_parts.is_empty() {
@@ -1916,7 +1916,7 @@ mod tests {
             };
             let result = StarknetEventsTable::get_events(&connection, &filter);
             assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "Invalid paging request");
+            assert_eq!(result.unwrap_err().to_string(), "Invalid pagination request");
 
             let filter = StarknetEventFilter {
                 from_block: None,
@@ -1928,7 +1928,7 @@ mod tests {
             };
             let result = StarknetEventsTable::get_events(&connection, &filter);
             assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "Invalid paging request");
+            assert_eq!(result.unwrap_err().to_string(), "Invalid pagination request");
         }
 
         #[test]

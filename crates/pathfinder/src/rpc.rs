@@ -2362,7 +2362,7 @@ mod tests {
             }
 
             #[tokio::test]
-            async fn get_events_with_invalid_paging_request() {
+            async fn get_events_with_invalid_pagination_request() {
                 let (storage, _events) = setup();
                 let sequencer = SeqClient::new(Chain::Goerli).unwrap();
                 let sync_state = Arc::new(SyncState::default());
@@ -2383,7 +2383,7 @@ mod tests {
                     .unwrap_err();
                 assert_matches!(
                     error,
-                    Error::Request(s) => assert_eq!(get_err(&s).1, "Internal error: Invalid paging request")
+                    Error::Request(s) => assert_eq!(get_err(&s).1, "Internal error: Invalid pagination request")
                 );
             }
 
