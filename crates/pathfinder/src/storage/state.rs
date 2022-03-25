@@ -1916,7 +1916,10 @@ mod tests {
             };
             let result = StarknetEventsTable::get_events(&connection, &filter);
             assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "Invalid pagination request");
+            assert_eq!(
+                result.unwrap_err().to_string(),
+                "Invalid pagination request"
+            );
 
             let filter = StarknetEventFilter {
                 from_block: None,
@@ -1928,7 +1931,10 @@ mod tests {
             };
             let result = StarknetEventsTable::get_events(&connection, &filter);
             assert!(result.is_err());
-            assert_eq!(result.unwrap_err().to_string(), "Invalid pagination request");
+            assert_eq!(
+                result.unwrap_err().to_string(),
+                "Invalid pagination request"
+            );
         }
 
         #[test]
