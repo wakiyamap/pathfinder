@@ -15,6 +15,7 @@ path = "src/lib.rs"
 tokio-console = ["console-subscriber", "tokio/tracing"]
 
 [dependencies]
+goose = "0.15.2"
 anyhow = "1.0.44"
 async-trait = "0.1.52"
 base64 = "0.13.0"
