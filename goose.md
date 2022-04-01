@@ -35,3 +35,30 @@ Possible culprits:
 This tests a single endpoint: `starknet_syncing`. This was chosen as it doesn't access the database, so it should be a baseline of sorts.
 
 Throughput: 83 811 rps.
+
+## Test 2
+
+Switch endpoint to `starknet_transactionByHash` with a constant query for the first hash in the genesis block.
+
+Started getting query timeouts (60s -- the default for `goose`). And a throughput of.. 15 :O. I can't imagine any database contention could be **that** poor *thinking*.
+
+I'll try again, with WAL mode enabled before running `goose`.
+```
+sqlite3 goerli.sqlite 'pragma journal_mode=WAL;'
+```
+and verified that the expected `goerli.sqlite-wal` and `goerli.sqlite-shm` files are generated.
+
+Still getting query timeouts and a "slightly" higher rps of 16.7.
+
+Throughput: 15   rps (without WAL).
+Throughput: 16.7 rps (with WAL).
+
+## Test 3
+
+Removing database writes by disabling the node's sync.
+
+Same results :( both with and without WAL.
+
+Throughput: 16.9   rps (with WAL).
+
+Seems to be our database access blocking somewhat in general?
