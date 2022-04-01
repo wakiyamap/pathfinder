@@ -38,7 +38,8 @@ async fn main() -> anyhow::Result<()> {
         ethereum::Chain::Goerli => "goerli.sqlite",
     };
 
-    let storage = Storage::migrate(database_path.into()).unwrap();
+    // let storage = Storage::migrate(database_path.into()).unwrap();
+    let storage = Storage::in_memory().unwrap();
     let sequencer = sequencer::Client::new(network_chain).unwrap();
     let sync_state = Arc::new(state::SyncState::default());
 
@@ -52,18 +53,18 @@ async fn main() -> anyhow::Result<()> {
 
     // TODO: the error could be recovered, but currently it's required for startup. There should
     // not be other reason for the start to fail than python script not firing up.
-    let (call_handle, cairo_handle) = cairo::ext_py::start(
-        storage.path().into(),
-        std::num::NonZeroUsize::new(2).unwrap(),
-        futures::future::pending(),
-    )
-    .await
-    .context(
-        "Creating python process for call handling. Have you setup our Python dependencies?",
-    )?;
+    // let (call_handle, cairo_handle) = cairo::ext_py::start(
+    //     storage.path().into(),
+    //     std::num::NonZeroUsize::new(2).unwrap(),
+    //     futures::future::pending(),
+    // )
+    // .await
+    // .context(
+    //     "Creating python process for call handling. Have you setup our Python dependencies?",
+    // )?;
 
-    let api = rpc::api::RpcApi::new(storage, sequencer, network_chain, sync_state)
-        .with_call_handling(call_handle);
+    let api = rpc::api::RpcApi::new(storage, sequencer, network_chain, sync_state);
+        // .with_call_handling(call_handle);
 
     let (rpc_handle, local_addr) =
         rpc::run_server(config.http_rpc_addr, api).context("Starting the RPC server")?;
@@ -77,12 +78,12 @@ async fn main() -> anyhow::Result<()> {
         //         Err(err) => tracing::error!("Sync process ended unexpected; failed to join task handle: {:?}", err),
         //     }
         // }
-        result = cairo_handle => {
-            match result {
-                Ok(task_result) => tracing::error!("Cairo process ended unexpected with: {:?}", task_result),
-                Err(err) => tracing::error!("Cairo process ended unexpected; failed to join task handle: {:?}", err),
-            }
-        }
+        // result = cairo_handle => {
+        //     match result {
+        //         Ok(task_result) => tracing::error!("Cairo process ended unexpected with: {:?}", task_result),
+        //         Err(err) => tracing::error!("Cairo process ended unexpected; failed to join task handle: {:?}", err),
+        //     }
+        // }
         _result = rpc_handle => {
             // This handle returns () so its not very useful.
             tracing::error!("RPC server process ended unexpected");

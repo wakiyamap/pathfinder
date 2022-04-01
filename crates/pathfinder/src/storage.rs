@@ -9,7 +9,7 @@ mod schema;
 mod state;
 
 use std::path::{Path, PathBuf};
-#[cfg(test)]
+// #[cfg(test)]
 use std::sync::Mutex;
 
 pub use contract::{ContractCodeTable, ContractsTable};
@@ -88,7 +88,7 @@ impl Storage {
         Ok(conn)
     }
 
-    #[cfg(test)]
+    // #[cfg(test)]
     /// Convenience function for tests to create an in-memory database.
     /// Equivalent to [Storage::migrate] with an in-memory backed database.
     pub fn in_memory() -> anyhow::Result<Self> {
