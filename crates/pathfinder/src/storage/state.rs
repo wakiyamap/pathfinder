@@ -32,36 +32,35 @@ impl From<StarknetBlockNumber> for L1TableBlockId {
 impl L1StateTable {
     /// Inserts a new [update](StateUpdateLog), fails if it already exists.
     pub fn insert(connection: &Connection, update: &StateUpdateLog) -> anyhow::Result<()> {
-        connection
-            .execute(
-                r"INSERT INTO l1_state (
-                        starknet_block_number,
-                        starknet_global_root,
-                        ethereum_block_hash,
-                        ethereum_block_number,
-                        ethereum_transaction_hash,
-                        ethereum_transaction_index,
-                        ethereum_log_index
-                    ) VALUES (
-                        :starknet_block_number,
-                        :starknet_global_root,
-                        :ethereum_block_hash,
-                        :ethereum_block_number,
-                        :ethereum_transaction_hash,
-                        :ethereum_transaction_index,
-                        :ethereum_log_index
-                    )",
-                named_params! {
-                    ":starknet_block_number": update.block_number.0,
-                    ":starknet_global_root": update.global_root.0.as_be_bytes(),
-                    ":ethereum_block_hash": &update.origin.block.hash.0[..],
-                    ":ethereum_block_number": update.origin.block.number.0,
-                    ":ethereum_transaction_hash": &update.origin.transaction.hash.0[..],
-                    ":ethereum_transaction_index": update.origin.transaction.index.0,
-                    ":ethereum_log_index": update.origin.log_index.0,
-                },
-            )
-            .context("Insert L1 state update")?;
+        let mut stmt = connection.prepare_cached(
+            r"INSERT INTO l1_state (
+                starknet_block_number,
+                starknet_global_root,
+                ethereum_block_hash,
+                ethereum_block_number,
+                ethereum_transaction_hash,
+                ethereum_transaction_index,
+                ethereum_log_index
+            ) VALUES (
+                :starknet_block_number,
+                :starknet_global_root,
+                :ethereum_block_hash,
+                :ethereum_block_number,
+                :ethereum_transaction_hash,
+                :ethereum_transaction_index,
+                :ethereum_log_index
+            )",
+        )?;
+        stmt.execute(named_params! {
+            ":starknet_block_number": update.block_number.0,
+            ":starknet_global_root": update.global_root.0.as_be_bytes(),
+            ":ethereum_block_hash": &update.origin.block.hash.0[..],
+            ":ethereum_block_number": update.origin.block.number.0,
+            ":ethereum_transaction_hash": &update.origin.transaction.hash.0[..],
+            ":ethereum_transaction_index": update.origin.transaction.index.0,
+            ":ethereum_log_index": update.origin.log_index.0,
+        })
+        .context("Insert L1 state update")?;
 
         Ok(())
     }
@@ -69,10 +68,9 @@ impl L1StateTable {
     /// Deletes all rows from __head down-to reorg_tail__
     /// i.e. it deletes all rows where `block number >= reorg_tail`.
     pub fn reorg(connection: &Connection, reorg_tail: StarknetBlockNumber) -> anyhow::Result<()> {
-        connection.execute(
-            "DELETE FROM l1_state WHERE starknet_block_number >= ?",
-            params![reorg_tail.0],
-        )?;
+        let mut stmt =
+            connection.prepare_cached("DELETE FROM l1_state WHERE starknet_block_number >= ?")?;
+        stmt.execute(params![reorg_tail.0])?;
         Ok(())
     }
 
@@ -83,10 +81,10 @@ impl L1StateTable {
     ) -> anyhow::Result<Option<GlobalRoot>> {
         let mut statement = match block {
             L1TableBlockId::Number(_) => {
-                connection.prepare("SELECT starknet_global_root FROM l1_state WHERE starknet_block_number = ?")
+                connection.prepare_cached("SELECT starknet_global_root FROM l1_state WHERE starknet_block_number = ?")
             }
             L1TableBlockId::Latest => connection
-                .prepare("SELECT starknet_global_root FROM l1_state ORDER BY starknet_block_number DESC LIMIT 1"),
+                .prepare_cached("SELECT starknet_global_root FROM l1_state ORDER BY starknet_block_number DESC LIMIT 1"),
         }?;
 
         let mut rows = match block {
@@ -116,7 +114,7 @@ impl L1StateTable {
         block: L1TableBlockId,
     ) -> anyhow::Result<Option<StateUpdateLog>> {
         let mut statement = match block {
-            L1TableBlockId::Number(_) => connection.prepare(
+            L1TableBlockId::Number(_) => connection.prepare_cached(
                 r"SELECT starknet_block_number,
                     starknet_global_root,
                     ethereum_block_hash,
@@ -126,7 +124,7 @@ impl L1StateTable {
                     ethereum_log_index
                 FROM l1_state WHERE starknet_block_number = ?",
             ),
-            L1TableBlockId::Latest => connection.prepare(
+            L1TableBlockId::Latest => connection.prepare_cached(
                 r"SELECT starknet_block_number,
                     starknet_global_root,
                     ethereum_block_hash,
@@ -210,16 +208,16 @@ impl RefsTable {
     /// Returns the current L1-L2 head. This indicates the latest block for which L1 and L2 agree.
     pub fn get_l1_l2_head(connection: &Connection) -> anyhow::Result<Option<StarknetBlockNumber>> {
         // This table always contains exactly one row.
-        let block_number =
-            connection.query_row("SELECT l1_l2_head FROM refs WHERE idx = 1", [], |row| {
-                let block_number = row
-                    .get_ref_unwrap(0)
-                    .as_i64_or_null()
-                    .unwrap()
-                    .map(|x| StarknetBlockNumber(x as u64));
+        let mut stmt = connection.prepare_cached("SELECT l1_l2_head FROM refs WHERE idx = 1")?;
+        let block_number = stmt.query_row([], |row| {
+            let block_number = row
+                .get_ref_unwrap(0)
+                .as_i64_or_null()
+                .unwrap()
+                .map(|x| StarknetBlockNumber(x as u64));
 
-                Ok(block_number)
-            })?;
+            Ok(block_number)
+        })?;
 
         Ok(block_number)
     }
@@ -244,16 +242,16 @@ pub struct StarknetBlocksTable {}
 impl StarknetBlocksTable {
     /// Insert a new [StarknetBlock]. Fails if the block number is not unique.
     pub fn insert(connection: &Connection, block: &StarknetBlock) -> anyhow::Result<()> {
-        connection.execute(
-            r"INSERT INTO starknet_blocks ( number,  hash,  root,  timestamp)
-                                   VALUES (:number, :hash, :root, :timestamp)",
-            named_params! {
-                ":number": block.number.0,
-                ":hash": block.hash.0.as_be_bytes(),
-                ":root": block.root.0.as_be_bytes(),
-                ":timestamp": block.timestamp.0,
-            },
+        let mut stmt = connection.prepare_cached(
+            "INSERT INTO starknet_blocks ( number,  hash,  root,  timestamp)
+                 VALUES (:number, :hash, :root, :timestamp)",
         )?;
+        stmt.execute(named_params! {
+            ":number": block.number.0,
+            ":hash": block.hash.0.as_be_bytes(),
+            ":root": block.root.0.as_be_bytes(),
+            ":timestamp": block.timestamp.0,
+        })?;
 
         Ok(())
     }
@@ -265,13 +263,13 @@ impl StarknetBlocksTable {
     ) -> anyhow::Result<Option<StarknetBlock>> {
         let mut statement = match block {
             StarknetBlocksBlockId::Number(_) => {
-                connection.prepare("SELECT hash, number, root, timestamp FROM starknet_blocks WHERE number = ?")
+                connection.prepare_cached("SELECT hash, number, root, timestamp FROM starknet_blocks WHERE number = ?")
             }
             StarknetBlocksBlockId::Hash(_) => {
-                connection.prepare("SELECT hash, number, root, timestamp FROM starknet_blocks WHERE hash = ?")
+                connection.prepare_cached("SELECT hash, number, root, timestamp FROM starknet_blocks WHERE hash = ?")
             }
             StarknetBlocksBlockId::Latest => {
-                connection.prepare("SELECT hash, number, root, timestamp FROM starknet_blocks ORDER BY number DESC LIMIT 1")
+                connection.prepare_cached("SELECT hash, number, root, timestamp FROM starknet_blocks ORDER BY number DESC LIMIT 1")
             }
         }?;
 
@@ -319,14 +317,13 @@ impl StarknetBlocksTable {
     ) -> anyhow::Result<Option<GlobalRoot>> {
         let mut statement = match block {
             StarknetBlocksBlockId::Number(_) => {
-                connection.prepare("SELECT root FROM starknet_blocks WHERE number = ?")
+                connection.prepare_cached("SELECT root FROM starknet_blocks WHERE number = ?")
             }
             StarknetBlocksBlockId::Hash(_) => {
-                connection.prepare("SELECT root FROM starknet_blocks WHERE hash = ?")
+                connection.prepare_cached("SELECT root FROM starknet_blocks WHERE hash = ?")
             }
-            StarknetBlocksBlockId::Latest => {
-                connection.prepare("SELECT root FROM starknet_blocks ORDER BY number DESC LIMIT 1")
-            }
+            StarknetBlocksBlockId::Latest => connection
+                .prepare_cached("SELECT root FROM starknet_blocks ORDER BY number DESC LIMIT 1"),
         }?;
 
         let mut rows = match block {
@@ -362,7 +359,7 @@ impl StarknetBlocksTable {
         connection: &Connection,
     ) -> anyhow::Result<Option<StarknetBlockNumber>> {
         let mut statement = connection
-            .prepare("SELECT number FROM starknet_blocks ORDER BY number DESC LIMIT 1")?;
+            .prepare_cached("SELECT number FROM starknet_blocks ORDER BY number DESC LIMIT 1")?;
         let mut rows = statement.query([])?;
         let row = rows.next().context("Iterate rows")?;
         match row {
@@ -427,14 +424,18 @@ impl StarknetTransactionsTable {
                 .compress(&serialized_receipt)
                 .context("Compress Starknet transaction receipt")?;
 
-            connection.execute(r"INSERT OR REPLACE INTO starknet_transactions (hash, idx, block_hash, tx, receipt) VALUES (:hash, :idx, :block_hash, :tx, :receipt)",
-        named_params![
-                    ":hash": transaction.transaction_hash.0.as_be_bytes(),
-                    ":idx": i,
-                    ":block_hash": block_hash.0.as_be_bytes(),
-                    ":tx": &tx_data,
-                    ":receipt": &serialized_receipt,
-                ]).context("Insert transaction data into transactions table")?;
+            let mut stmt = connection.prepare_cached(
+                r"INSERT OR REPLACE INTO starknet_transactions (hash, idx, block_hash, tx, receipt) VALUES (:hash, :idx, :block_hash, :tx, :receipt)"
+            )
+            .context("Prepare insert transaction data into transactions table")?;
+            stmt.execute(named_params![
+                ":hash": transaction.transaction_hash.0.as_be_bytes(),
+                ":idx": i,
+                ":block_hash": block_hash.0.as_be_bytes(),
+                ":tx": &tx_data,
+                ":receipt": &serialized_receipt,
+            ])
+            .context("Insert transaction data into transactions table")?;
 
             // insert events from receipt
             StarknetEventsTable::insert_events(
@@ -470,7 +471,7 @@ impl StarknetTransactionsTable {
         };
 
         let mut stmt = connection
-            .prepare(
+            .prepare_cached(
                 "SELECT tx, receipt FROM starknet_transactions WHERE block_hash = ? ORDER BY idx ASC",
             )
             .context("Preparing statement")?;
@@ -526,7 +527,7 @@ impl StarknetTransactionsTable {
         };
 
         let mut stmt = connection
-            .prepare("SELECT tx FROM starknet_transactions WHERE block_hash = ? AND idx = ?")
+            .prepare_cached("SELECT tx FROM starknet_transactions WHERE block_hash = ? AND idx = ?")
             .context("Preparing statement")?;
 
         let mut rows = stmt
@@ -555,7 +556,7 @@ impl StarknetTransactionsTable {
         transaction: StarknetTransactionHash,
     ) -> anyhow::Result<Option<(transaction::Receipt, StarknetBlockHash)>> {
         let mut stmt = connection
-            .prepare("SELECT receipt, block_hash FROM starknet_transactions WHERE hash = ?1")
+            .prepare_cached("SELECT receipt, block_hash FROM starknet_transactions WHERE hash = ?1")
             .context("Preparing statement")?;
 
         let mut rows = stmt
@@ -587,7 +588,7 @@ impl StarknetTransactionsTable {
         transaction: StarknetTransactionHash,
     ) -> anyhow::Result<Option<transaction::Transaction>> {
         let mut stmt = connection
-            .prepare("SELECT tx FROM starknet_transactions WHERE hash = ?1")
+            .prepare_cached("SELECT tx FROM starknet_transactions WHERE hash = ?1")
             .context("Preparing statement")?;
 
         let mut rows = stmt
@@ -616,22 +617,21 @@ impl StarknetTransactionsTable {
         block: StarknetBlocksBlockId,
     ) -> anyhow::Result<usize> {
         match block {
-            StarknetBlocksBlockId::Number(number) => connection
-                .query_row(
+            StarknetBlocksBlockId::Number(number) => {
+                let mut stmt = connection.prepare_cached(
                     "SELECT COUNT(*) FROM starknet_transactions
-                    JOIN starknet_blocks ON starknet_transactions.block_hash = starknet_blocks.hash
-                    WHERE number = ?1",
-                    params![number.0],
-                    |row| row.get(0),
-                )
-                .context("Counting transactions"),
-            StarknetBlocksBlockId::Hash(hash) => connection
-                .query_row(
+                        JOIN starknet_blocks ON starknet_transactions.block_hash = starknet_blocks.hash
+                        WHERE number = ?1").context("Preparing transaction count query")?;
+                stmt.query_row(params![number.0], |row| row.get(0))
+                    .context("Counting transactions")
+            }
+            StarknetBlocksBlockId::Hash(hash) => {
+                let mut stmt = connection.prepare_cached(
                     "SELECT COUNT(*) FROM starknet_transactions WHERE block_hash = ?1",
-                    params![hash.0.as_be_bytes()],
-                    |row| row.get(0),
-                )
-                .context("Counting transactions"),
+                )?;
+                stmt.query_row(params![hash.0.as_be_bytes()], |row| row.get(0))
+                    .context("Counting transactions")
+            }
             StarknetBlocksBlockId::Latest => {
                 // First get the latest block
                 let block =
