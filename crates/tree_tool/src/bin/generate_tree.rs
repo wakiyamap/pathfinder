@@ -50,9 +50,10 @@ fn main() {
 
     use Message::*;
 
-    let txs = [1, 2, 3, 5, 7, 11]
+    // uncomment the fibonacci to to have commits every nth row
+    let txs = [/*1, 2, 3, 5, 7, 11*/]
         .into_iter()
-        .map(|every| {
+        .map(|every: usize| {
             let (tx, rx) = std::sync::mpsc::channel();
             let jh = std::thread::spawn(move || {
                 let name = format!("every_{}", every);
