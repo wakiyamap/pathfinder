@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use pedersen::StarkHash;
+use stark_hash::StarkHash;
 
 fn main() {
     let me = std::env::args()
