@@ -21,7 +21,7 @@ import sys
 
 from starkware.starkware_utils.commitment_tree.patricia_tree.patricia_tree import PatriciaTree
 from starkware.starknet.testing.state import StarknetState
-from starkware.starknet.business_logic.state_objects import ContractState
+from starkware.starknet.business_logic.state.objects import ContractState
 from starkware.starknet.storage.starknet_storage import StorageLeaf
 from copy import deepcopy
 
@@ -186,7 +186,7 @@ if __name__ == "__main__":
 
     gen = (lineparser(line) for line in sys.stdin if len(line.strip()) > 0 and not line.startswith('#'))
     (root, nodes) = asyncio.run(generate_root_and_nodes(gen, impl, INCLUDE_NODES))
-    print(root.hex())
+    print(f"0x{root.hex().upper()}")
 
     for k, v in nodes.items():
         [prefix, suffix] = k.split(b":", maxsplit=1)

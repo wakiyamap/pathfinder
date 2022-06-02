@@ -144,7 +144,7 @@ fn main() {
         root
     };
 
-    println!("{:?}", root);
+    println!("{}", root);
 
     if std::env::var_os("TREE_TOOL_SUPPRESS_NODES").is_none() {
         dump(&mut conn, "test");
