@@ -94,18 +94,19 @@ pub async fn sync(
         }
 
         // Unwrap in both block and state update is safe as the block hash always exists (unless we query for pending).
+        let block_hash = block.block_hash.unwrap();
         let t_update = std::time::Instant::now();
         let state_update = sequencer
-            .state_update_by_hash(block.block_hash.unwrap().into())
+            .state_update_by_hash(block_hash.into())
             .await
             .with_context(|| format!("Fetch state diff for block {:?} from sequencer", next))?;
+        let state_update_block_hash = state_update.block_hash.unwrap();
         // An extra sanity check for the state update API.
-        assert_eq!(
-            block.block_hash.unwrap(),
-            state_update.block_hash.unwrap(),
+        anyhow::ensure!(
+            block_hash == state_update_block_hash,
             "State update block hash mismatch, actual {:x}, expected {:x}",
-            block.block_hash.unwrap().0,
-            state_update.block_hash.unwrap().0,
+            block_hash.0,
+            state_update_block_hash.0
         );
         let t_update = t_update.elapsed();
 
@@ -153,7 +154,7 @@ pub async fn sync(
             contract_updates,
         };
 
-        head = Some((next, block.block_hash.unwrap()));
+        head = Some((next, block_hash));
 
         let timings = Timings {
             block_download: t_block,
@@ -247,6 +248,7 @@ async fn reorg(
             .await
             .with_context(|| format!("Download block {} from sequencer", previous_block_number.0))?
         {
+            // Unwrap is safe bacause this is not a `pending` block
             DownloadBlock::Block(block) if block.block_hash.unwrap() == previous_hash => {
                 break Some((previous_block_number, previous_hash));
             }
