@@ -146,16 +146,19 @@ pub mod reply {
     use super::request::BlockResponseScope;
     use crate::{
         core::{
-            CallParam, ClassHash, ContractAddress, EntryPoint, EventData, EventKey, GasPrice,
+            CallParam, ClassHash, ContractAddress, EntryPoint, EventData, EventKey, Fee, GasPrice,
             GlobalRoot, SequencerAddress, StarknetBlockHash, StarknetBlockNumber,
             StarknetBlockTimestamp, StarknetTransactionHash,
         },
-        rpc::{api::RawBlock, serde::GasPriceAsHexStr},
+        rpc::{
+            api::RawBlock,
+            serde::{FeeAsHexStr, GasPriceAsHexStr},
+        },
         sequencer::reply as seq,
         sequencer::reply::Status as SeqStatus,
     };
     use serde::{Deserialize, Serialize};
-    use serde_with::serde_as;
+    use serde_with::{serde_as, skip_serializing_none};
     use stark_hash::StarkHash;
     use std::convert::From;
 
@@ -290,6 +293,8 @@ pub mod reply {
                                         contract_address: t.contract_address,
                                         entry_point_selector: t.entry_point_selector,
                                         calldata: t.calldata,
+                                        max_fee: t.max_fee,
+                                        actual_fee: r.actual_fee,
                                         status: r.status,
                                         status_data: r.status_data,
                                         messages_sent: r.messages_sent,
@@ -477,6 +482,8 @@ pub mod reply {
     }
 
     /// L2 transaction as returned by the RPC API.
+    #[serde_as]
+    #[skip_serializing_none]
     #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
     pub struct Transaction {
         pub txn_hash: StarknetTransactionHash,
@@ -485,6 +492,8 @@ pub mod reply {
         pub entry_point_selector: Option<EntryPoint>,
         /// Absent for "deploy" transactions
         pub calldata: Option<Vec<CallParam>>,
+        #[serde_as(as = "Option<FeeAsHexStr>")]
+        pub max_fee: Option<Fee>,
     }
 
     impl TryFrom<seq::Transaction> for Transaction {
@@ -499,6 +508,7 @@ pub mod reply {
                 contract_address: txn.contract_address,
                 entry_point_selector: txn.entry_point_selector,
                 calldata: txn.calldata,
+                max_fee: txn.max_fee,
             })
         }
     }
@@ -510,14 +520,19 @@ pub mod reply {
                 contract_address: txn.contract_address,
                 entry_point_selector: txn.entry_point_selector,
                 calldata: txn.calldata,
+                max_fee: txn.max_fee,
             }
         }
     }
 
     /// L2 transaction receipt as returned by the RPC API.
+    #[serde_as]
+    #[skip_serializing_none]
     #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
     pub struct TransactionReceipt {
         pub txn_hash: StarknetTransactionHash,
+        #[serde_as(as = "Option<FeeAsHexStr>")]
+        pub actual_fee: Option<Fee>,
         pub status: TransactionStatus,
         pub status_data: String,
         pub messages_sent: Vec<transaction_receipt::MessageToL1>,
@@ -529,6 +544,7 @@ pub mod reply {
         pub fn with_status(receipt: seq::transaction::Receipt, status: BlockStatus) -> Self {
             Self {
                 txn_hash: receipt.transaction_hash,
+                actual_fee: receipt.actual_fee,
                 status: status.into(),
                 // TODO at the moment not available in sequencer replies
                 status_data: String::new(),
@@ -624,6 +640,7 @@ pub mod reply {
     /// Used in [Block](crate::rpc::types::reply::Block) when the requested scope of
     /// reply is [BlockResponseScope::FullTransactionsAndReceipts](crate::rpc::types::request::BlockResponseScope).
     #[serde_as]
+    #[skip_serializing_none]
     #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
     pub struct TransactionAndReceipt {
         pub txn_hash: StarknetTransactionHash,
@@ -632,6 +649,10 @@ pub mod reply {
         pub entry_point_selector: Option<EntryPoint>,
         /// Absent in "deploy" transaction
         pub calldata: Option<Vec<CallParam>>,
+        #[serde_as(as = "Option<FeeAsHexStr>")]
+        pub max_fee: Option<Fee>,
+        #[serde_as(as = "Option<FeeAsHexStr>")]
+        pub actual_fee: Option<Fee>,
         pub status: TransactionStatus,
         pub status_data: String,
         pub messages_sent: Vec<transaction_receipt::MessageToL1>,
