@@ -93,12 +93,20 @@ pub async fn sync(
             }
         }
 
-        // unwrap is safe as the block hash always exists (unless we query for pending).
+        // Unwrap in both block and state update is safe as the block hash always exists (unless we query for pending).
         let t_update = std::time::Instant::now();
         let state_update = sequencer
             .state_update_by_hash(block.block_hash.unwrap().into())
             .await
             .with_context(|| format!("Fetch state diff for block {:?} from sequencer", next))?;
+        // An extra sanity check for the state update API.
+        assert_eq!(
+            block.block_hash.unwrap(),
+            state_update.block_hash.unwrap(),
+            "State update block hash mismatch, actual {:x}, expected {:x}",
+            block.block_hash.unwrap().0,
+            state_update.block_hash.unwrap().0,
+        );
         let t_update = t_update.elapsed();
 
         let t_deploy = std::time::Instant::now();
@@ -516,6 +524,7 @@ mod tests {
             };
 
             static ref STATE_UPDATE0: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK0_HASH),
                 new_root: *GLOBAL_ROOT0,
                 old_root: GlobalRoot(StarkHash::ZERO),
                 state_diff: reply::state_update::StateDiff {
@@ -533,6 +542,7 @@ mod tests {
                 },
             };
             static ref STATE_UPDATE0_V2: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK0_HASH_V2),
                 new_root: *GLOBAL_ROOT0_V2,
                 old_root: GlobalRoot(StarkHash::ZERO),
                 state_diff: reply::state_update::StateDiff {
@@ -544,6 +554,7 @@ mod tests {
                 },
             };
             static ref STATE_UPDATE1: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK1_HASH),
                 new_root: *GLOBAL_ROOT1,
                 old_root: *GLOBAL_ROOT0,
                 state_diff: reply::state_update::StateDiff {
@@ -570,6 +581,7 @@ mod tests {
                 },
             };
             static ref STATE_UPDATE1_V2: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK1_HASH_V2),
                 new_root: *GLOBAL_ROOT1_V2,
                 old_root: *GLOBAL_ROOT0_V2,
                 state_diff: reply::state_update::StateDiff {
@@ -578,6 +590,7 @@ mod tests {
                 },
             };
             static ref STATE_UPDATE2: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK2_HASH),
                 new_root: *GLOBAL_ROOT2,
                 old_root: *GLOBAL_ROOT1,
                 state_diff: reply::state_update::StateDiff {
@@ -586,6 +599,7 @@ mod tests {
                 },
             };
             static ref STATE_UPDATE2_V2: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK2_HASH_V2),
                 new_root: *GLOBAL_ROOT2_V2,
                 old_root: *GLOBAL_ROOT1_V2,
                 state_diff: reply::state_update::StateDiff {
@@ -594,6 +608,7 @@ mod tests {
                 },
             };
             static ref STATE_UPDATE3: reply::StateUpdate = reply::StateUpdate {
+                block_hash: Some(*BLOCK3_HASH),
                 new_root: *GLOBAL_ROOT3,
                 old_root: *GLOBAL_ROOT2,
                 state_diff: reply::state_update::StateDiff {
