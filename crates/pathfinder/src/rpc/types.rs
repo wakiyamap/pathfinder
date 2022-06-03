@@ -483,11 +483,8 @@ pub mod reply {
     #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
     pub struct Transaction {
         pub txn_hash: StarknetTransactionHash,
-        /// Equal to `sender_address` for a Declare transaction
         pub contract_address: ContractAddress,
-        /// Present only for an Invoke transaction
         pub entry_point_selector: Option<EntryPoint>,
-        /// Present only for an Invoke transaction
         pub calldata: Option<Vec<CallParam>>,
     }
 
