@@ -28,6 +28,9 @@ jobs:
       - name: Install OpenSSL
         if: matrix.target.triple == 'x86_64-pc-windows-msvc'
         run: vcpkg install openssl:x64-windows
+      - name: Install gmp
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: vcpkg install gmp:x64-windows
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
