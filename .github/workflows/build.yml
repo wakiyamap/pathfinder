@@ -17,10 +17,20 @@ jobs:
     runs-on: ${{ matrix.target.os }}
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+
+      # install OpenSSL on Windows
+      # TODO: GitHub actions docs state that OpenSSL is
+      # already installed on these Windows machines somewhere
+      - name: Set vcpkg root
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Install OpenSSL
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: vcpkg install openssl:x64-windows
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -33,3 +43,5 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          cd py
+          python -m pip install -r requirements-dev.txt
