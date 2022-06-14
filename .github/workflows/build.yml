@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         target:
@@ -28,7 +27,7 @@ jobs:
       - name: Set up Rust ${{ matrix.rust-version }}
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: ${{ matrix.python-version }}
+          toolchain: ${{ matrix.rust-version }}
           components: rustfmt, clippy
 
       - name: Install dependencies
