@@ -10,8 +10,8 @@ jobs:
           - { name: Linux, os: ubuntu-latest, triple: x86_64-unknown-linux-gnu }
           - { name: macOS, os: macos-latest, triple: x86_64-apple-darwin }
           - { name: Windows, os: windows-2022, triple: x86_64-pc-windows-msvc }
-        rust-version: [1.58]
-        python-version: [3.10]
+        rust-version: ["1.58"]
+        python-version: ["3.10"]
 
     name: ${{ matrix.target.name }} / ${{ matrix.version }}
     runs-on: ${{ matrix.target.os }}
