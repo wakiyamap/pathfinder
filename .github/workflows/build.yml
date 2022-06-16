@@ -39,19 +39,15 @@ jobs:
           components: rustfmt, clippy
 
       - name: Update pip
-        run: |
-          python -m pip install --upgrade pip
+        run: python -m pip install --upgrade pip
 
       - name: Windows needs gmp.h
         if: matrix.target.triple == 'x86_64-pc-windows-msvc'
-        run: |
-          python -m pip install gmpy2
-          dir "C:/vcpkg/packages/gmp_x64-windows/"
-          dir "C:/vcpkg/packages/gmp_x64-windows/lib/"
-          dir "C:/vcpkg/packages/gmp_x64-windows/include/"
-          python -m pip install fastecdsa --global-option=build_ext --global-option="-IC:\vcpkg\packages\gmp_x64-windows\include" --global-option="-LC:\vcpkg\packages\gmp_x64-windows\lib"
+        run: python -m pip install fastecdsa==2.2.3 --global-option=build_ext --global-option="-IC:\vcpkg\packages\gmp_x64-windows\include" --global-option="-LC:\vcpkg\packages\gmp_x64-windows\lib"
 
       - name: Install dependencies
         run: |
           cd py
           python -m pip install -r requirements-dev.txt
+          cd ../
+          cargo build --release --bin pathfinder
