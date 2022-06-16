@@ -49,7 +49,7 @@ jobs:
           dir "C:/vcpkg/packages/gmp_x64-windows/"
           dir "C:/vcpkg/packages/gmp_x64-windows/lib/"
           dir "C:/vcpkg/packages/gmp_x64-windows/include/"
-          python -m pip install fastecdsa --global-option="-LC:\vcpkg\packages\gmp_x64-windows\include"
+          python -m pip install fastecdsa --global-option=build_ext --global-option="-LC:\vcpkg\packages\gmp_x64-windows\include"
 
       - name: Install dependencies
         run: |
