@@ -30,10 +30,15 @@ jobs:
           toolchain: ${{ matrix.rust-version }}
           components: rustfmt, clippy
 
-      - name: Install dependencies
+      - name: Update pip
         run: |
           python -m pip install --upgrade pip
+
+      - name: Windows needs gmp.h
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: python -m pip install gmpy2        
+
+      - name: Install dependencies
+        run: |
           cd py
-          if: matrix.target.triple == 'x86_64-pc-windows-msvc'
-          python -m pip install gmpy2
           python -m pip install -r requirements-dev.txt
