@@ -54,16 +54,16 @@ jobs:
 
       - name: Update pip
         run: |
-          pip install --upgrade pip
+          PIP_REQUIRE_VIRTUALENV=true pip install --upgrade pip
 
       - name: Install fastecdsa for windows
         if: matrix.target.triple == 'x86_64-pc-windows-msvc'
-        run: pip install fastecdsa==2.2.3 --global-option=build_ext --global-option="-IC:\vcpkg\packages\gmp_x64-windows\include" --global-option="-LC:\vcpkg\packages\gmp_x64-windows\lib"
+        run: PIP_REQUIRE_VIRTUALENV=true pip install fastecdsa==2.2.3 --global-option=build_ext --global-option="-IC:\vcpkg\packages\gmp_x64-windows\include" --global-option="-LC:\vcpkg\packages\gmp_x64-windows\lib"
 
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
-          cd ../
+          cd py
+          PIP_REQUIRE_VIRTUALENV=true pip install -r requirements-dev.txt
 
       - name: Build
         run: |
