@@ -38,10 +38,22 @@ jobs:
           toolchain: ${{ matrix.rust-version }}
           components: rustfmt, clippy
 
-      - name: Update pip
+      - name: Activate venv(Linux|macOS)
+        if: matrix.target.triple != 'x86_64-pc-windows-msvc'
         run: |
+          cd py
           python -m venv .venv
           source .venv/bin/activate
+
+      - name: Activate venv(Windows)
+        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
+        run: |
+          cd py
+          python -m venv .venv
+          .venv/Scripts/activate.bat
+
+      - name: Update pip
+        run: |
           pip install --upgrade pip
 
       - name: Install fastecdsa for windows
@@ -50,9 +62,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd py
           pip install -r requirements-dev.txt
           cd ../
+
       - name: Build
         run: |
           cargo build --release --bin pathfinder
