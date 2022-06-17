@@ -19,13 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set vcpkg root
+      - name: Install gmp(Windows)
         if: matrix.target.triple == 'x86_64-pc-windows-msvc'
-        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Install gmp
-        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
-        run: vcpkg install gmp:x64-windows
+        run: |
+          echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+          vcpkg install gmp:x64-windows
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -38,31 +36,23 @@ jobs:
           toolchain: ${{ matrix.rust-version }}
           components: rustfmt, clippy
 
-      - name: Activate venv(Linux|macOS)
+      - name: Install dependencies(Linux|macOS)
         if: matrix.target.triple != 'x86_64-pc-windows-msvc'
         run: |
           cd py
           python -m venv .venv
           source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements-dev.txt
 
-      - name: Activate venv(Windows)
+      - name: Install dependencies(Windows)
         if: matrix.target.triple == 'x86_64-pc-windows-msvc'
         run: |
           cd py
           python -m venv .venv
           .venv/Scripts/activate.bat
-
-      - name: Update pip
-        run: |
           pip install --upgrade pip
-
-      - name: Install fastecdsa for windows
-        if: matrix.target.triple == 'x86_64-pc-windows-msvc'
-        run: pip install fastecdsa==2.2.3 --global-option=build_ext --global-option="-IC:\vcpkg\packages\gmp_x64-windows\include" --global-option="-LC:\vcpkg\packages\gmp_x64-windows\lib"
-
-      - name: Install dependencies
-        run: |
-          cd py
+          pip install fastecdsa==2.2.3 --global-option=build_ext --global-option="-IC:\vcpkg\packages\gmp_x64-windows\include" --global-option="-LC:\vcpkg\packages\gmp_x64-windows\lib"
           pip install -r requirements-dev.txt
 
       - name: Build
